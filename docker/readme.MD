@@ -1,3 +1,8 @@
+# Notes about Docker
+
+This is a compilation of notes, files, etc about this superb course by gvilarino on Platzi
+https://github.com/platzi/docker
+
 ### Problems when building:
 
 - Development dependencies (packages)
