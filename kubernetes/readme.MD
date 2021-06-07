@@ -215,7 +215,7 @@ The kubectl command line tool lets you control Kubernetes clusters. For configur
 `service`, en caso de que el recurso sea un servicio que se tiene que escuchar en algun puerto.
 por ultimo el `pod`.
 
-## Deployments y replicas
+## Deployments y replica sets
 
 Para los que llegan hasta aquí usen play with K8s las instrucciones para hacer las replicas es crear los deployments de la siguiente manera:
 
@@ -232,3 +232,141 @@ Para los que llegan hasta aquí usen play with K8s las instrucciones para hacer 
 una vez creado el deployment pueden realizar las replicas OJO: utilizar el nombre del servicio sin el código que le subsigue:
 
 - ` kubectl scale deployments/pingpong --replicas <numero>`
+
+Existe una relacion entre los deployments y los replicasets.
+
+El `DEPLOYMENT` es un construct, una estructura, del mas alto nivel que va a permitir escalar nuestros pods, hacer rolling upgrades y hacer rollbacks.
+
+Multiples deployments pueden entrar en juego para generar un canary deployment (ej: dos versiones de una aplicacion con la 1 corriendo con 5 pods, promovemos un pod a la version 2, enviamos un poco de trafico revisando las metricas para ver que este todo bien, y mandamos otro pod para ver que todo funcione bien y asi hasta que esten todos. Si algo falla, se hace rollback)
+
+El deployment permite hacer este workflow pero delega al replicaset la creacion y el scaling de los pods.
+
+El `REPLICASET` es un construct del mas low level que se asegura de que haya una cantidad de pods definida corriendo en un determinado momento. Es raro que lo modifiquemos directamente, sino a traves del deployment.
+
+Para borrar un pod uno puede hacer
+
+- `kubectl delete pod pingpong....`
+
+## Accessing containers
+
+El tipo de servicio en Kubernetes pueden ser de cuatro formas diferentes:
+
+- `Cluster IP`: Una IP virtual es asignada para el servicio
+- `NodePort`: Un puerto es asignado para el servicio en todos los nodos
+- `Load Balancer`: Un balanceador externo es provisionado para el servicio. Solo disponible cuando se usa un servicio con un balanceador
+- `ExternalNam`e: Una entrada de DNS manejado por CoreDNS
+
+#Curl al primer POD
+curl http://$(kubectl get po -l app=httpenv -o jsonpath="{.items[0].status.podIP}"):8888 | jq ""
+
+#Curl al service
+curl http://$(kubectl get service/httpenv -o jsonpath='{.spec.clusterIP}'):8888 | jq ""
+
+#Ciclo para revisar el Curl extrayendo cual sea la IP
+for i in $(seq 10); do curl -s http://$(kubectl get service/httpenv -o jsonpath='{.spec.clusterIP}'):8888 | jq ".HOSTNAME"; done
+
+"""
+kubectl get pods
+kubectl describe pod idpod
+kubectl get all
+kubectl delete deploy/httpenv
+kubectl create deployment httpenv --image jpetazzo/httpenv
+kubectl get pods
+kubectl get all
+kubectl scale deployment httpenv --replicas=5
+kubectl get pods
+kubectl get pods -o wide
+curl http://10.44.0.5:8888
+curl http://10.44.0.5:8888 |jq "" // formatea resultado hayq ye revisar ela version de linux
+kubectl expose deployment httpenv --port=8888
+kubectl get svc --> servicio
+for i in $(seq 10); do curl -s http://10.110.57.28:8888 |jq .HOSTNAME; done
+"""
+
+## How to deploy services
+
+Para los que quieren reproducir todo en local, hice lo siguiente:
+
+Instalar Kind
+Kind permite crear clusters en local con multiples nodos. Pueden seguir este video, donde al comienzo explican como instalarlo: https://www.youtube.com/watch?v=4p4DqdTDqkk
+
+Crear el cluster
+Guarden esta configuracion en un .yaml
+
+## a cluster with 1 control-plane nodes and 5 workers
+
+https://www.youtube.com/watch?v=4p4DqdTDqkk
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+
+- role: control-plane
+- role: worker
+- role: worker
+- role: worker
+- role: worker
+- role: worker
+
+Creamos el cluster con kind
+
+`kind create cluster --config kind-config.yaml`
+
+Y seguimos los pasos de la clase de platzi
+Exponer servicio
+Posiblemente, al seguir la clase y querer acceder al WebUI colocando en el browser localhost:<<NodePort>>, se encuentren con un connnection refused. Esto, creo, sucede por que el puerto no mapea desde el localhost o 127.0.0.1, sino que Kind hace un bind con una direccion local de la maquina. Para saber cual es la direccion ip, arme este comando
+
+`docker inspect -f "{{ .NetworkSettings.IPAddress }}" $(docker ps --filter "name=kind-control-plane" -q)`
+
+Con el output, ya pueden ir al browser y acceder. EJ: http://172.17.0.7:31104
+
+En mi caso, estoy usando Linux. Por lo que he leido, puede que en Mac o Windows no se exponga el puerto, por lo que pueden explorar crear los clusters usando extraPortMapping
+
+"""
+kubectl create deployment redis --image=redis --> crear deployment, service y demas en k8 usando redis image
+kubectl get all
+kubectl delete service httpenv
+kubectl get all
+kubectl get pods
+kubectl delete service httpenv
+kubectl get pods
+kubectl create deployment hasher --image=dockercoins/hasher:v0.1
+kubeclt get pods
+kubectl get pods
+kubectl create deployment rng --image=dockercoins/rng:v0.1
+kubectl get pods
+kubectl create deployment webui --image=dockercoins/webui:v0.1
+kubectl get pods
+kubectl create deployment worker --image=dockercoins/worker:v0.1
+kubectl logs deploy/rng
+kubectl logs deploy/worker
+kubectl expose deployment redis --port 6379 --> para exponer deployments para que se puedan hablar entre si.
+kubectl expose deployment rng --port 80
+kubectl expose deployment hasher --port 80
+kubectl expose deploy/webui --type=NodePort --port=80
+"""
+
+imagenes de docker-coins --> https://hub.docker.com/u/dockercoins
+
+port externo 8080:80 interno
+
+## Exponiendo servicios interna y externamente (kubectl-proxy)
+
+- `kubectl-proxy` es un proxy que corre foreground y nos permite acceder a la API de kubernetes de manera autenticada.
+
+- `kubectl port-forward` nos permite realizar lo mismo que kubectl-proxy, pero accediendo a cualquier puerto del servicio expuesto en nuestro cluster
+
+"""
+kubectl get services kubernetes
+curl https://10.96.0.1
+curl -k https://10.96.0.1 //no revisar certificados
+kubectl proxy &
+curl http://localhost:8001
+curl http://localhost:8001/version
+fg
+kubectl proxy --help
+kubectl get service
+kubectl port-forward svc/redis 10000:6379 &
+telnet localhost 10000
+info
+^]
+"""
