@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-deployment
+  labels:
+    app: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo
+        ports: # That is defined in docker hub
+        - containerPort: 27017 # the container that I want to expose
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: 'admin'
+          # valueFrom: # we tell the config to grab the values from secret so we don't hardcode them
+          #   secretKeyRef:
+          #     name: mongodb-secret # already in the cluster
+          #     key: mongo-root-username # the key in the mongo-secret.yaml
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: 'pass'
+          # valueFrom: 
+          #   secretKeyRef:
+          #     name: mongodb-secret
+          #     key: mongo-root-password
+---
+# --- Service so that other components can talk with this deployment
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service
+spec:
+  selector: #to connect to the pod with the same label
+    app: mongodb
+  ports: # we expose the service pot
+    - protocol: TCP
+      port: 27017 # service port
+      targetPort: 27017 # container port, or the pod port

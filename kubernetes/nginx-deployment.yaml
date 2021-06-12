@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx # this makes a connection to the service or its pods, the service should know which pods belong to the deployment
+spec: #information to create the Deployment
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx  # This way the deployment knows which pod belongs to it defined below
+  template: # information to create the pod
+    metadata:
+      labels:
+        app: nginx 
+    spec: # blueprint for a pod
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 8080
