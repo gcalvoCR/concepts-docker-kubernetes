@@ -442,6 +442,7 @@ Healthchecks es un organismo que tiene kubernetes para saber si nuestra aplicaci
 
 The kubelet uses `liveness` probes to know when to restart a container.
 The kubelet uses `readiness` probes to know when a container is ready to start accepting traffic. A Pod is considered ready when all of its containers are ready. When a Pod is not ready, it is removed from Service load balancers.
+
 The kubelet uses startup probes to know when a container application has started. This can be used to adopt liveness checks on slow starting containers, avoiding them getting killed by the kubelet before they are up and running.
 
 **Liveness **- the kubelet uses these probes as an indicator to restart a container. A liveness probe is used to detect when an application is running and is unable to make progress. When a container gets in this state, the pod’s kubelet can restart the container via its restart policy.
@@ -449,9 +450,10 @@ The kubelet uses startup probes to know when a container application has started
 **Readiness **- This type of probe is used to detect if a container is ready to accept traffic. You can use this probe to manage which pods are used as backends for load balancing services. If a pod is not ready, it can then be removed from the list of load balancers.
 
 Types Health Checks:
-ExecAction - executes a command inside the container.
-++TCPSocketAction +± performs a TCP check against the container’s IP address on a specified port.
-HTTPGetAction - performs an HTTP GET request on the container’s IP.
+
+- `ExecAction` - executes a command inside the container.
+- `++TCPSocketAction` +± performs a TCP check against the container’s IP address on a specified port.
+- `HTTPGetAction` - performs an HTTP GET request on the container’s IP.
 
 ## Gestionar stacks con Helm
 
